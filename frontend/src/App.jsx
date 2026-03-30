@@ -8,10 +8,10 @@ const INITIAL_TUTORS = [
 ];
 
 const CODE_MAPPING = {
-  login: { url: 'POST /api/auth/login', code: '@PostMapping("/login")\npublic ResponseEntity<?> authenticate(@RequestBody LoginRequest req) {\n  logger.info("AUTH: Attempting login for {}", req.getEmail());\n  return ResponseEntity.ok(userService.validate(req));\n}' },
-  tutors: { url: 'GET /api/tutors', code: '@GetMapping\npublic List<User> getTutors() {\n  logger.info("JPA: SELECT * FROM users WHERE role=\'TUTOR\'");\n  return userRepository.findByRole(Role.TUTOR);\n}' },
-  booking: { url: 'POST /api/bookings', code: '@PostMapping\npublic Booking create(@RequestBody Booking b) {\n  logger.info("JPA: PERSISTING NEW BOOKING for TutorID: {}", b.getTutorId());\n  return bookingRepository.save(b);\n}' },
-  system: { url: 'GET /api/system/architecture', code: '@GetMapping("/architecture")\npublic Map<String, Object> getArchitectureInfo() {\n  logger.info("JPA: SELECT * FROM system_metadata WHERE key=\'ARCH\'");\n  return systemService.getMetadata();\n}' }
+  login: { url: 'POST /api/auth/login', code: '@PostMapping("/login")\npublic ResponseEntity<?> authenticate(@RequestBody LoginRequest req) {\n  return ResponseEntity.ok(userService.validate(req));\n}' },
+  tutors: { url: 'GET /api/tutors', code: '@GetMapping\npublic List<User> getTutors() {\n  return userRepository.findByRole(Role.TUTOR);\n}' },
+  booking: { url: 'POST /api/bookings', code: '@PostMapping\npublic Booking create(@RequestBody Booking b) {\n  return bookingRepository.save(b);\n}' },
+  system: { url: 'GET /api/system/architecture', code: '@GetMapping("/architecture")\npublic Map<String, Object> getArchitectureInfo() {\n  return systemService.getMetadata();\n}' }
 };
 
 const App = () => {
@@ -22,13 +22,8 @@ const App = () => {
   const [currentUrl, setCurrentUrl] = useState('POST /api/auth/login');
   const [currentCode, setCurrentCode] = useState(CODE_MAPPING.login.code);
   const [bookings, setBookings] = useState([]);
-  const [trace, setTrace] = useState([
-    { timestamp: '21:34:12', msg: 'Spring Context Initialized...', type: 'SYSTEM' },
-    { timestamp: '21:34:15', msg: 'H2 Database connected to ./data/tutorlink', type: 'DB' }
-  ]);
   
   const videoRef = useRef(null);
-  const traceEndRef = useRef(null);
 
   const updateSource = (key) => {
     if (CODE_MAPPING[key]) {
@@ -37,27 +32,22 @@ const App = () => {
     }
   };
 
-  const logTrace = (msg, type = 'JPA') => {
-    const timestamp = new Date().toLocaleTimeString('en-GB');
-    setTrace(prev => [...prev.slice(-12), { timestamp, msg, type }]);
-  };
-
+  // Scroll Reveal Logic
   useEffect(() => {
-    if (traceEndRef.current) traceEndRef.current.scrollIntoView({ behavior: 'smooth' });
-  }, [trace]);
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  }, [view]);
 
   const handleLogin = (e) => {
     e.preventDefault();
-    logTrace(`AUTH: Attempting login for ${e.target.email.value}`, 'SECURITY');
     if (e.target.email.value === 'sample123@gmail.com' && e.target.password.value === '123456') {
-      setTimeout(() => {
-        logTrace(`JPA: SELECT * FROM users WHERE email='sample123@gmail.com'`, 'DB');
-        setUser({ name: 'Sample User' });
-        setView('home');
-        updateSource('system');
-      }, 500);
+      setUser({ name: 'Sample User' });
+      setView('home');
+      updateSource('system');
     } else {
-      logTrace(`AUTH: Invalid credentials`, 'ERROR');
       alert('Use sample123@gmail.com / 123456');
     }
   };
@@ -71,24 +61,6 @@ const App = () => {
         <span style={{ fontSize: '0.75rem', fontWeight: '800', color: isSourceMode ? '#0ff' : '#666' }}>SOURCE MODE</span>
         <div onClick={() => setIsSourceMode(!isSourceMode)} style={{ width: '50px', height: '24px', background: isSourceMode ? '#0ff' : '#222', borderRadius: '12px', position: 'relative', cursor: 'pointer', border: '1px solid #333' }}>
           <div style={{ width: '18px', height: '18px', background: isSourceMode ? '#000' : '#444', borderRadius: '50%', position: 'absolute', top: '2px', left: isSourceMode ? '28px' : '3px', transition: '0.3s' }}></div>
-        </div>
-      </div>
-
-      {/* Live Java Trace Panel (Mobile hidden) */}
-      <div className="trace-panel">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid #0ff', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
-          <Terminal size={14} color="#0ff" />
-          <span style={{ color: '#0ff', fontSize: '0.7rem', fontWeight: '800' }}>BACKEND LIVE TRACE (JAVA 17)</span>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {trace.map((line, i) => (
-            <div key={i} className="trace-line">
-              <span style={{ opacity: 0.4 }}>[{line.timestamp}]</span>{' '}
-              <span style={{ color: line.type === 'DB' ? '#0ff' : line.type === 'ERROR' ? '#f00' : '#0f0' }}>{line.type}</span>:{' '}
-              {line.msg}
-            </div>
-          ))}
-          <div ref={traceEndRef} />
         </div>
       </div>
 
@@ -112,10 +84,6 @@ const App = () => {
                   {currentCode}
                 </pre>
             </div>
-            
-            <div style={{ marginTop: '3rem', fontSize: '0.7rem', color: '#444' }}>
-                *Visualization mode enabled. High-level Spring Boot mapping detected. 
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -137,10 +105,10 @@ const App = () => {
             <nav style={{ paddingRight: '12rem' }}>
               <div className="logo" onClick={() => setView('home')}>TutorLink</div>
               <div className="nav-links">
-                <a href="#" onClick={() => { setView('home'); logTrace('EVENT: Navigating to HOME', 'UI'); updateSource('system'); }}>Home</a>
-                <a href="#" onClick={() => { setView('tutors'); logTrace('JPA: FETCH ALL TUTORS', 'DB'); updateSource('tutors'); }}>Tutors</a>
-                <a href="#" onClick={() => { setView('about'); logTrace('EVENT: VIEW ARCHITECTURE', 'UI'); updateSource('system'); }}>Architecture</a>
-                <a href="https://twss.netlify.app/contact" target="_blank" onClick={() => logTrace('REDIRECT: Support portal', 'SYSTEM')}>Support</a>
+                <a href="#" onClick={() => { setView('home'); updateSource('system'); }}>Home</a>
+                <a href="#" onClick={() => { setView('tutors'); updateSource('tutors'); }}>Tutors</a>
+                <a href="#" onClick={() => { setView('about'); updateSource('system'); }}>Architecture</a>
+                <a href="https://twss.netlify.app/contact" target="_blank">Support</a>
                 <button onClick={() => setUser(null) || setView('login')} style={{ background: 'transparent', border: 'none', color: '#0ff', cursor: 'pointer', fontWeight: '800' }}>EXIT</button>
               </div>
             </nav>
@@ -207,7 +175,6 @@ const App = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span style={{ fontSize: '1.5rem', fontWeight: '900' }}>${t.rate}/HR</span>
                           <button className="btn-mag" style={{ padding: '0.8rem 1.5rem' }} onClick={() => {
-                            logTrace(`JPA: Persisting BOOKING for ${t.name}`, 'DB');
                             updateSource('booking');
                             setBookings([...bookings, { id: Date.now(), tutor: t.name, subject: t.subject }]);
                             alert('Session Scheduled. Code trace updated.');
@@ -223,11 +190,11 @@ const App = () => {
                 <div style={{ maxWidth: '600px' }}>
                     <h1>Sign Up <br/> as Tutor</h1>
                     <div className="card-3d" style={{ marginTop: '4rem' }}>
-                        <form onSubmit={(e) => { e.preventDefault(); setTutors([{id: Date.now(), name: e.target.name.value, subject: e.target.subj.value, rate: e.target.rate.value, bio: e.target.bio.value, image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400'}, ...tutors]); setView('tutors'); logTrace('JPA: SAVING NEW TUTOR_ONBOARDING', 'DB'); }}>
-                            <input name="name" placeholder="Full Professional Name" required style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '1.5rem', outline: 'none' }} />
-                            <input name="subj" placeholder="Domain Expertise (e.g. Java Engine)" required style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '1.5rem', outline: 'none' }} />
-                            <input name="rate" type="number" placeholder="Hourly Rate ($)" required style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '1.5rem', outline: 'none' }} />
-                            <textarea name="bio" placeholder="Architectural Experience / Bio" required style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '3rem', outline: 'none', minHeight: '100px' }} />
+                        <form onSubmit={(e) => { e.preventDefault(); setTutors([{id: Date.now(), name: e.target.name.value, subject: e.target.subj.value, rate: e.target.rate.value, bio: e.target.bio.value, image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400'}, ...tutors]); setView('tutors'); }}>
+                            <input name="name" placeholder="Full Professional Name" required style={{ background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '1.5rem', outline: 'none' }} />
+                            <input name="subj" placeholder="Domain Expertise (e.g. Java Engine)" required style={{ background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '1.5rem', outline: 'none' }} />
+                            <input name="rate" type="number" placeholder="Hourly Rate ($)" required style={{ background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '1.5rem', outline: 'none' }} />
+                            <textarea name="bio" placeholder="Architectural Experience / Bio" required style={{ background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '3rem', outline: 'none', minHeight: '100px' }} />
                             <button className="btn-mag" style={{ width: '100%' }}>SUBMIT APPLICATION</button>
                         </form>
                     </div>
@@ -243,7 +210,7 @@ const App = () => {
           <div><div className="logo">TutorLink</div><p style={{ color: '#555', marginTop: '1rem' }}>Architectural scale education platform.</p></div>
           <div><h4>System</h4><p style={{ color: '#555', marginTop: '1rem' }}>Java 17<br/>React 18<br/>WebRTC</p></div>
           <div><h4>Support</h4><p style={{ color: '#555', marginTop: '1rem' }}><a href="https://twss.netlify.app/contact" style={{ color: '#0ff' }}>Support Portal</a></p></div>
-          <div><h4>Project</h4><p style={{ color: '#555', marginTop: '1rem' }}><a href="#" onClick={() => logTrace('EVENT: Redirecting to GITHUB', 'SECURITY')}>Github Source</a></p></div>
+          <div><h4>Project</h4><p style={{ color: '#555', marginTop: '1rem' }}><a href="#">Github Source</a></p></div>
         </div>
       </footer>
     </div>

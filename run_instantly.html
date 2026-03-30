@@ -7,8 +7,6 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -33,12 +31,12 @@
         .nav-links a:hover { opacity: 1; color: var(--accent); }
 
         .container { max-width: 1300px; margin: 0 auto; padding: 8rem 2rem; }
-        h1 { font-size: clamp(3rem, 10vw, 7rem); font-weight: 900; line-height: 0.9; letter-spacing: -0.05em; margin-bottom: 2rem; text-transform: uppercase; }
+        h1 { font-size: clamp(2.5rem, 8vw, 6rem); font-weight: 900; line-height: 0.95; letter-spacing: -0.05em; margin-bottom: 2rem; text-transform: uppercase; }
         
         .card-3d { 
             background: var(--glass); border: 1px solid var(--border); padding: 3rem; 
             transition: 0.6s cubic-bezier(0.23, 1, 0.32, 1); transform-style: preserve-3d;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4); margin-bottom: 2rem;
         }
         .card-3d:hover { 
             transform: translateY(-20px) rotateX(10deg) rotateY(-10deg); 
@@ -50,7 +48,7 @@
         .btn-mag {
             padding: 1.2rem 3rem; background: transparent; border: 1px solid var(--accent); color: var(--accent);
             font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer;
-            transition: 0.4s; font-size: 0.75rem;
+            transition: 0.4s; font-size: 0.75rem; text-decoration: none; display: inline-block;
         }
         .btn-mag:hover { background: var(--accent); color: black; transform: scale(1.05); }
 
@@ -58,26 +56,18 @@
             position: fixed; left: 2rem; top: 1.5rem; bottom: 2rem; width: 420px;
             background: rgba(0,0,0,0.95); border: 1px solid var(--accent); padding: 2.5rem;
             z-index: 2000; font-family: 'Courier New', monospace; box-shadow: 0 0 100px rgba(0,255,255,0.1);
-            animation: slide-in 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            animation: sl-in 0.5s forwards;
         }
-        @keyframes slide-in { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        
-        .trace-panel {
-            position: fixed; bottom: 2rem; right: 2rem; width: 380px; height: 350px;
-            background: rgba(0,0,0,0.95); border: 1px solid var(--accent); padding: 1.5rem;
-            font-family: 'Courier New', monospace; font-size: 0.7rem; z-index: 1000;
-            display: flex; flex-direction: column; overflow: hidden;
-        }
-        .trace-line { margin-bottom: 0.4rem; color: #0f0; opacity: 0; animation: f-in 0.3s forwards; }
-        @keyframes f-in { to { opacity: 1; transform: translateX(5px); } }
+        @keyframes sl-in { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        .toggle-box { position: fixed; top: 1.5rem; right: 4rem; z-index: 2100; display: flex; align-items: center; gap: 1rem; color: #fff; }
-        .switch { width: 44px; height: 22px; background: #222; border-radius: 22px; position: relative; cursor: pointer; border: 1px solid #444; }
-        .switch.on { background: var(--accent); }
-        .handle { width: 16px; height: 16px; background: #fff; border-radius: 50%; position: absolute; top: 2px; left: 3px; transition: 0.3s; }
-        .switch.on .handle { left: 23px; background: #000; }
+        .tg-box { position: fixed; top: 1.5rem; right: 4rem; z-index: 2100; display: flex; align-items: center; gap: 1rem; color: #fff; }
+        .sw { width: 44px; height: 22px; background: #222; border-radius: 22px; position: relative; cursor: pointer; border: 1px solid #444; }
+        .sw.active { background: var(--accent); }
+        .hd { width: 16px; height: 16px; background: #fff; border-radius: 50%; position: absolute; top: 2px; left: 3px; transition: 0.3s; }
+        .sw.active .hd { left: 23px; background: #000; }
 
-        @media (max-width: 768px) { nav { padding: 1rem 2rem; } .trace-panel, .source-overlay, .toggle-box { display: none; } }
+        .fade-i { animation: fi 0.8s forwards; }
+        @keyframes fi { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -85,135 +75,112 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-        const { motion, AnimatePresence } = window.Motion || { motion: { div: (props) => <div {...props}>{props.children}</div> }, AnimatePresence: (props) => <>{props.children}</> };
 
-        const CODE_MAPPING = {
-            login: { url: 'POST /api/auth/login', code: '@PostMapping("/login")\npublic ResponseEntity<?> authenticate(@RequestBody LoginRequest req) {\n  logger.info("AUTH: Attempting login for {}", req.getEmail());\n  return ResponseEntity.ok(userService.validate(req));\n}' },
-            tutors: { url: 'GET /api/tutors', code: '@GetMapping\npublic List<User> getTutors() {\n  logger.info("JPA: SELECT * FROM users WHERE role=\'TUTOR\'");\n  return userRepository.findByRole(Role.TUTOR);\n}' },
-            booking: { url: 'POST /api/bookings', code: '@PostMapping\npublic Booking create(@RequestBody Booking b) {\n  logger.info("JPA: PERSISTING NEW BOOKING for TutorID: {}", b.getTutorId());\n  return bookingRepository.save(b);\n}' },
-            system: { url: 'GET /api/system/architecture', code: '@GetMapping("/architecture")\npublic Map<String, Object> getArchitectureInfo() {\n  logger.info("JPA: SELECT * FROM system_metadata WHERE key=\'ARCH\'");\n  return systemService.getMetadata();\n}' }
+        const CODE_MAP = {
+            login: { url: 'POST /api/auth/login', code: '@PostMapping("/login")\npublic ResponseEntity authenticate(@RequestBody LoginRequest req) {\n  return ResponseEntity.ok(userService.validate(req));\n}' },
+            tutors: { url: 'GET /api/tutors', code: '@GetMapping\npublic List<User> getTutors() {\n  return userRepository.findByRole(Role.TUTOR);\n}' },
+            booking: { url: 'POST /api/bookings', code: '@PostMapping\npublic Booking create(@RequestBody Booking b) {\n  return bookingRepository.save(b);\n}' },
+            sys: { url: 'GET /api/system/arch', code: '@GetMapping("/architecture")\npublic Map getArch() {\n  return service.getMetadata();\n}' }
         };
 
         const App = () => {
             const [view, setView] = useState('login');
-            const [isSource, setIsSource] = useState(false);
-            const [src, setSrc] = useState(CODE_MAPPING.login);
-            const [trace, setTrace] = useState([
-                { t: '22:05:10', m: 'Spring Boot 3.2.4 Initialized...', ty: 'SYS' },
-                { t: '22:05:12', m: 'JPA: Connected to H2 File-DB @ ./data/tutorlink', ty: 'DB' }
-            ]);
+            const [isSrc, setIsSrc] = useState(false);
+            const [src, setSrc] = useState(CODE_MAP.login);
             const [tutors, setTutors] = useState([
-                { id: 1, name: 'Siva Charan', subject: 'Java Architecture', rate: 75, bio: 'Expert Java Developer. Specializing in Low-Level Threading & Spring Boot Internals.', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400' },
-                { id: 2, name: 'Varsith', subject: 'Python AI Engine', rate: 65, bio: 'ML Architect and Python enthusiast. Expert in building scalable neural engines.', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400' }
+                { id: 1, name: 'Siva Charan', subject: 'Java Architecture', rate: 75, bio: 'Expert Java Developer. Specializing in Low-Level Threading & Spring Boot.', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400' },
+                { id: 2, name: 'Varsith', subject: 'Python AI Engine', rate: 65, bio: 'ML Architect and Python expert. Expert in scalable neural engines.', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400' }
             ]);
 
-            const log = (m, ty = 'JPA') => {
-                const t = new Date().toLocaleTimeString('en-GB');
-                setTrace(prev => [...prev.slice(-12), { t, m, ty }]);
-            };
-
-            const updateSrc = (k) => { setSrc(CODE_MAPPING[k]); };
+            const updSrc = (k) => { setSrc(CODE_MAP[k]); };
 
             const handleLogin = (e) => {
                 e.preventDefault();
-                log(`AUTH: Verifying for ${e.target.email.value}`, 'SEC');
                 if (e.target.email.value === 'sample123@gmail.com' && e.target.password.value === '123456') {
-                    setTimeout(() => { log(`JPA: SELECT * FROM users`, 'DB'); setView('home'); updateSrc('system'); }, 400);
-                } else { log('AUTH: Invalid.', 'ERR'); alert('Use sample123@gmail.com / 123456'); }
+                    setTimeout(() => { setView('home'); updSrc('sys'); }, 400);
+                } else { alert('Invalid.'); }
             };
 
             return (
-                <div style={{minHeight:'100vh', position:'relative'}}>
+                <div style={{minHeight:'100vh'}}>
                     <div className="bg-grid"></div>
 
-                    {/* Source Mode Toggle */}
                     {view !== 'login' && (
-                        <div className="toggle-box">
-                            <span style={{fontSize:'0.7rem', fontWeight:'900', color:isSource?'#0ff':'#666'}}>SOURCE MODE</span>
-                            <div className={`switch ${isSource?'on':''}`} onClick={()=>setIsSource(!isSource)}>
-                                <div className="handle"></div>
+                        <div className="tg-box">
+                            <span style={{fontSize:'0.65rem', fontWeight:'900', color:isSrc?'#0ff':'#444'}}>SOURCE MODE</span>
+                            <div className={`sw ${isSrc?'active':''}`} onClick={()=>setIsSrc(!isSrc)}>
+                                <div className="hd"></div>
                             </div>
                         </div>
                     )}
 
-                    {/* Trace Panel */}
-                    <div className="trace-panel">
-                        <div style={{color:'var(--accent)', fontWeight:'900', borderBottom:'1px solid var(--accent)', paddingBottom:'0.5rem', marginBottom:'0.8rem', fontSize:'0.75rem'}}>BACKEND LIVE TRACE</div>
-                        <div style={{overflowY:'auto', flex:1}}>
-                            {trace.map((l, i) => (
-                                <div key={i} className="trace-line">[{l.t}] <span style={{color:l.ty==='DB'?'#0ff':l.ty==='ERR'?'#f00':'#0f0'}}>{l.ty}</span>: {l.m}</div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Source Overlay */}
-                    {isSource && (
+                    {isSrc && (
                         <div className="source-overlay">
-                            <h4 style={{color:'var(--accent)', marginBottom:'1.5rem'}}>ARCHITECTURAL LOGIC</h4>
+                            <h4 style={{color:'#0ff', marginBottom:'1.5rem'}}>ARCHITECTURAL LOGIC</h4>
                             <div style={{marginBottom:'2rem'}}>
-                                <div style={{color:'#555', fontSize:'0.6rem', marginBottom:'0.3rem'}}>REST ENDPOINT</div>
-                                <div style={{padding:'0.6rem', background:'#111', fontSize:'0.75rem', color:'#0ff', border:'1px solid #222'}}>{src.url}</div>
+                                <div style={{color:'#444', fontSize:'0.6rem', marginBottom:'0.3rem'}}>REST ENDPOINT</div>
+                                <div style={{padding:'0.6rem', background:'#111', fontSize:'0.75rem', color:'#0ff'}}>{src.url}</div>
                             </div>
                             <div>
-                                <div style={{color:'#555', fontSize:'0.6rem', marginBottom:'0.3rem'}}>JAVA CONTROLLER</div>
-                                <pre style={{padding:'1rem', background:'#080808', borderLeft:'2px solid var(--accent)', fontSize:'0.7rem', color:'#888', whiteSpace:'pre-wrap'}}>{src.code}</pre>
+                                <div style={{color:'#444', fontSize:'0.6rem', marginBottom:'0.3rem'}}>JAVA CONTROLLER</div>
+                                <pre style={{padding:'1rem', background:'#080808', borderLeft:'2px solid #0ff', fontSize:'0.65rem', color:'#888', whiteSpace:'pre-wrap'}}>{src.code}</pre>
                             </div>
                         </div>
                     )}
 
                     {view !== 'login' && (
-                        <nav style={{paddingRight: '12rem', width:'100%'}}>
+                        <nav style={{paddingRight: '12rem'}}>
                             <div className="logo" onClick={() => setView('home')}>TutorLink</div>
                             <div className="nav-links">
-                                <a href="#" onClick={() => { setView('tutors'); log('JPA: FETCH ALL_TUTORS', 'DB'); updateSrc('tutors'); }}>Tutors</a>
-                                <a href="#" onClick={() => { setView('about'); log('EVENT: View ARCHITECTURE', 'SYS'); updateSrc('system'); }}>Architecture</a>
-                                <a href="https://twss.netlify.app/contact" target="_blank" onClick={() => log('REDIRECT: Support', 'SYS')}>Support</a>
-                                <button className="btn-mag" style={{padding:'0.6rem 1.2rem', marginLeft:'1.5rem', background:'transparent', border:'none', color:'#0ff', cursor:'pointer'}} onClick={() => { setView('login'); updateSrc('login'); }}>Sign Out</button>
+                                <a href="#" onClick={() => { setView('tutors'); updSrc('tutors'); }}>Tutors</a>
+                                <a href="#" onClick={() => { setView('about'); updSrc('sys'); }}>Architecture</a>
+                                <a href="https://twss.netlify.app/contact" target="_blank">Support</a>
+                                <button style={{background:'transparent', border:'none', color:'#0ff', cursor:'pointer', fontWeight:'800', marginLeft:'1.5rem'}} onClick={() => { setView('login'); updSrc('login'); }}>EXIT</button>
                             </div>
                         </nav>
                     )}
 
-                    <main className="container" style={{paddingLeft: isSource?'480px':'2rem', transition:'0.5s'}}>
+                    <main className="container" style={{paddingLeft: isSrc?'480px':'2rem', transition:'0.5s'}}>
                         {view === 'login' && (
-                            <div className="fade-in" style={{maxWidth: '450px', margin: '7vh auto'}}>
+                            <div className="fade-i" style={{maxWidth: '450px', margin: '7vh auto'}}>
                                 <div className="card-3d" style={{padding: '4rem'}}>
                                     <h2 style={{fontSize:'3rem', marginBottom:'3rem'}}>PORTAL</h2>
                                     <form onSubmit={handleLogin}>
                                         <input name="email" type="email" placeholder="sample123@gmail.com" required style={{width:'100%', background:'transparent', border:'none', borderBottom:'1px solid #333', color:'#fff', padding:'1rem 0', marginBottom:'1.5rem', outline:'none'}} />
                                         <input name="password" type="password" placeholder="123456" required style={{width:'100%', background:'transparent', border:'none', borderBottom:'1px solid #333', color:'#fff', padding:'1rem 0', marginBottom:'3rem', outline:'none'}} />
-                                        <button className="btn-mag" style={{width: '100%', background:'#fff', color:'#000', border:'none'}}>Sign In</button>
+                                        <button className="btn-mag" style={{width: '100%', background:'#fff', color:'#000'}}>Sign In</button>
                                     </form>
                                 </div>
                             </div>
                         )}
 
                         {view === 'home' && (
-                            <div className="fade-in">
+                            <div className="fade-i">
                                 <h1>Architectural <br/> Engineering.</h1>
-                                <p style={{fontSize:'1.6rem', color:'rgba(255,255,255,0.5)', marginBottom:'4rem', maxWidth:'700px'}}>Discover expert tutors and manage learning with deep architectural transparency.</p>
+                                <p style={{fontSize:'1.6rem', color:'rgba(255,255,255,0.4)', marginBottom:'4rem', maxWidth:'700px'}}>Connect with expert tutors and manage learning with deep architectural transparency.</p>
                                 <div style={{display:'flex', gap:'2rem'}}>
-                                    <button className="btn-mag" onClick={() => { setView('tutors'); updateSrc('tutors'); }}>Get Started</button>
+                                    <button className="btn-mag" onClick={() => { setView('tutors'); updSrc('tutors'); }}>Get Started</button>
                                     <button className="btn-mag" style={{borderColor:'#fff', color:'#fff'}} onClick={() => setView('about')}>Our Story</button>
                                 </div>
                             </div>
                         )}
 
                         {view === 'tutors' && (
-                            <div className="fade-in">
+                            <div className="fade-i">
                                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'4rem'}}>
                                     <h2 style={{fontSize:'3rem'}}>Faculty</h2>
                                     <button className="btn-mag" onClick={()=>setView('add-tutor')}>Join as Tutor</button>
                                 </div>
-                                <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(350px, 1fr))', gap:'4rem'}}>
+                                <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(320px, 1fr))', gap:'4rem'}}>
                                     {tutors.map(t => (
                                         <div key={t.id} className="card-3d">
-                                            <img src={t.image} style={{width:'100%', height:'250px', objectFit:'cover'}} />
+                                            <img src={t.image} style={{width:'100%', height:'240px', objectFit:'cover'}} />
                                             <h3 style={{marginTop:'2rem', color:'#0ff'}}>{t.name}</h3>
                                             <p style={{fontWeight:'900', margin:'0.8rem 0'}}>{t.subject}</p>
-                                            <p style={{opacity:0.5, fontSize:'0.9rem', marginBottom:'2.5rem'}}>{t.bio}</p>
+                                            <p style={{opacity:0.5, fontSize:'0.85rem', marginBottom:'2.5rem', minHeight:'3.5rem'}}>{t.bio}</p>
                                             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                                                 <strong>${t.rate}/HR</strong>
-                                                <button className="btn-mag" onClick={() => { log(`JPA: Persisting Booking for ${t.name}`, 'DB'); updateSrc('booking'); alert('Persistence Successful.'); }}>Book</button>
+                                                <button className="btn-mag" style={{padding:'0.8rem 1.5rem'}} onClick={() => { updSrc('booking'); alert('Success.'); }}>Book</button>
                                             </div>
                                         </div>
                                     ))}
@@ -221,26 +188,16 @@
                             </div>
                         )}
 
-                        {view === 'about' && (
-                           <div className="fade-in">
-                                <h1>Backbone</h1>
-                                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4rem', marginTop:'4rem'}}>
-                                    <div className="card-3d"><h3>H2 Persistence</h3><p style={{opacity:0.6, marginTop:'1rem'}}>High-level file-based storage architecture.</p></div>
-                                    <div className="card-3d"><h3>Real-time Trace</h3><p style={{opacity:0.6, marginTop:'1rem'}}>Live backend execution visibility.</p></div>
-                                </div>
-                           </div>
-                        )}
-
                         {view === 'add-tutor' && (
-                            <div className="fade-in" style={{maxWidth:'600px'}}>
+                            <div className="fade-i" style={{maxWidth:'600px'}}>
                                 <h2>Apply as Tutor</h2>
                                 <div className="card-3d" style={{marginTop:'3rem'}}>
-                                    <form onSubmit={(e)=>{e.preventDefault(); setTutors([{id:Date.now(), name:e.target.n.value, subject:e.target.s.value, rate:e.target.r.value, bio:e.target.b.value, image:'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400'}, ...tutors]); setView('tutors'); log('JPA: Persisting Tutor_Onboarding', 'DB');}}>
+                                    <form onSubmit={(e)=>{e.preventDefault(); setTutors([{id:Date.now(), name:e.target.n.value, subject:e.target.s.value, rate:e.target.r.value, bio:e.target.b.value, image:'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400'}, ...tutors]); setView('tutors');}}>
                                         <input name="n" placeholder="Name" required style={{width:'100%', background:'transparent', border:'none', borderBottom:'1px solid #333', color:'#fff', padding:'1rem 0', marginBottom:'1.5rem', outline:'none'}} />
                                         <input name="s" placeholder="Expertise" required style={{width:'100%', background:'transparent', border:'none', borderBottom:'1px solid #333', color:'#fff', padding:'1rem 0', marginBottom:'1.5rem', outline:'none'}} />
                                         <input name="r" type="number" placeholder="Rate" required style={{width:'100%', background:'transparent', border:'none', borderBottom:'1px solid #333', color:'#fff', padding:'1rem 0', marginBottom:'1.5rem', outline:'none'}} />
-                                        <textarea name="b" placeholder="Bio" required style={{width:'100%', background:'transparent', border:'none', borderBottom:'1px solid #333', color:'#fff', padding:'1rem 0', marginBottom:'3rem', outline:'none', minHeight:'100px'}} />
-                                        <button className="btn-mag" style={{width:'100%'}}>Submit</button>
+                                        <textarea name="b" placeholder="Bio" required style={{width:'100%', background:'transparent', border:'none', borderBottom:'1px solid #333', color:'#fff', padding:'1rem 0', marginBottom:'3rem', outline:'none', minHeight:'80px'}} />
+                                        <button className="btn-mag" style={{width:'100%'}}>Apply</button>
                                     </form>
                                 </div>
                             </div>
