@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TutorLink | Online Tutor Booking & Session Management</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide-static@0.363.0/lib/lucide.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #555555;
+            --border-color: #eeeeee;
+            --font-family: 'Inter', sans-serif;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: var(--bg-color); color: var(--text-primary); font-family: var(--font-family); line-height: 1.6; }
+        nav { padding: 2rem 4rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; background: white; z-index: 100; }
+        .logo { font-size: 1.5rem; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: -0.05em; }
+        .nav-links a { margin-left: 2rem; text-decoration: none; color: var(--text-primary); font-weight: 500; font-size: 0.9rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 4rem 2rem; }
+        .btn { padding: 0.8rem 2rem; border: 1px solid black; background: black; color: white; cursor: pointer; font-weight: 600; transition: 0.3s; text-decoration: none; display: inline-block; }
+        .btn:hover { background: white; color: black; }
+        .btn-outline { background: transparent; color: black; }
+        .card { border: 1px solid var(--border-color); padding: 2rem; transition: 0.3s; margin-bottom: 2rem; }
+        .card:hover { border-color: black; }
+        input, textarea { width: 100%; padding: 1rem; border: 1px solid var(--border-color); margin-bottom: 1.5rem; outline: none; font-family: inherit; }
+        input:focus { border-color: black; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+        video { width: 100%; height: 100%; object-fit: cover; background: #111; border-radius: 1rem; }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const INITIAL_TUTORS = [
+            { id: 1, name: 'Siva Charan', subject: 'Java', rate: 55, bio: 'Expert Java Developer. Specializing in Spring Boot and Microservices.', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400' },
+            { id: 2, name: 'Varsith', subject: 'Python', rate: 45, bio: 'Data Science enthusiast and Python expert. Passionate about AI/ML.', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400' }
+        ];
+
+        const App = () => {
+            const [view, setView] = useState('login');
+            const [user, setUser] = useState(null);
+            const [tutors, setTutors] = useState(INITIAL_TUTORS);
+            const [bookings, setBookings] = useState([]);
+            const videoRef = useRef(null);
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                const email = e.target.email.value;
+                const password = e.target.password.value;
+                if (email === 'sample123@gmail.com' && password === '123456') {
+                    setUser({ name: 'Sample User' });
+                    setView('home');
+                } else {
+                    alert('Use sample123@gmail.com / 123456');
+                }
+            };
+
+            const handleAddTutor = (e) => {
+                e.preventDefault();
+                const newTutor = {
+                    id: Date.now(),
+                    name: e.target.name.value,
+                    subject: e.target.subject.value,
+                    rate: e.target.rate.value,
+                    bio: e.target.bio.value,
+                    image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400'
+                };
+                setTutors([newTutor, ...tutors]);
+                setView('tutors');
+            };
+
+            useEffect(() => {
+                if (view === 'session') {
+                    navigator.mediaDevices.getUserMedia({ video: true })
+                        .then(stream => { if (videoRef.current) videoRef.current.srcObject = stream; })
+                        .catch(err => alert("Camera access required for live sessions."));
+                }
+            }, [view]);
+
+            return (
+                <div>
+                    {view !== 'login' && view !== 'session' && (
+                        <nav>
+                            <div className="logo" onClick={() => setView('home')}>TutorLink</div>
+                            <div className="nav-links">
+                                <a href="#" onClick={() => setView('tutors')}>Find Tutors</a>
+                                <a href="#" onClick={() => setView('add-tutor')}>Add Tutor</a>
+                                <a href="#" onClick={() => setView('dashboard')}>Dashboard</a>
+                                <a href="#" onClick={() => setView('login')} style={{fontWeight: '700'}}>Logout</a>
+                            </div>
+                        </nav>
+                    )}
+
+                    <main className="container">
+                        {view === 'login' && (
+                            <div className="fade-in" style={{maxWidth: '400px', margin: '10vh auto'}}>
+                                <h1 style={{textAlign: 'center', marginBottom: '2rem'}}>Sign In</h1>
+                                <form onSubmit={handleLogin}>
+                                    <label>Email</label>
+                                    <input name="email" type="email" placeholder="sample123@gmail.com" required />
+                                    <label>Password</label>
+                                    <input name="password" type="password" placeholder="123456" required />
+                                    <button className="btn" style={{width: '100%'}}>Login</button>
+                                </form>
+                            </div>
+                        )}
+
+                        {view === 'home' && (
+                            <div className="fade-in">
+                                <h1>Welcome, {user?.name}</h1>
+                                <p style={{fontSize: '1.2rem', color: '#666', margin: '1.5rem 0 3rem'}}>Join the global network of expert tutors. Experience high-level learning with real-time session management.</p>
+                                <button className="btn" onClick={() => setView('tutors')}>Get Started</button>
+                            </div>
+                        )}
+
+                        {view === 'tutors' && (
+                            <div className="fade-in">
+                                <h2 style={{marginBottom: '2rem'}}>Expert Tutors</h2>
+                                <div className="grid">
+                                    {tutors.map(t => (
+                                        <div key={t.id} className="card">
+                                            <img src={t.image} style={{width: '100%', height: '200px', objectFit: 'cover', filter: 'grayscale(1)', marginBottom: '1rem'}} />
+                                            <h3>{t.name}</h3>
+                                            <p style={{fontWeight: '600', color: '#888'}}>{t.subject}</p>
+                                            <p style={{margin: '1rem 0', fontSize: '0.9rem', height: '3.5rem', overflow: 'hidden'}}>{t.bio}</p>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                                <strong>${t.rate}/hr</strong>
+                                                <button className="btn" onClick={() => { setBookings([{id: Date.now(), tutor: t.name, subject: t.subject, time: 'Today, 4:00 PM'}, ...bookings]); setView('dashboard'); }}>Book</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'add-tutor' && (
+                            <div className="fade-in" style={{maxWidth: '600px'}}>
+                                <h2>Add Tutor Profile</h2>
+                                <form onSubmit={handleAddTutor} style={{marginTop: '2rem'}}>
+                                    <input name="name" placeholder="Name (e.g. Siva Charan)" required />
+                                    <input name="subject" placeholder="Subject (e.g. Java)" required />
+                                    <input name="rate" type="number" placeholder="Rate ($/hr)" required />
+                                    <textarea name="bio" rows="4" placeholder="Professional Bio..." required />
+                                    <button className="btn">Create Profile</button>
+                                </form>
+                            </div>
+                        )}
+
+                        {view === 'dashboard' && (
+                            <div className="fade-in">
+                                <h2>Your Sessions</h2>
+                                <div style={{marginTop: '2rem'}}>
+                                    {bookings.length === 0 ? <p>No bookings yet.</p> : bookings.map(b => (
+                                        <div key={b.id} className="card" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                            <div>
+                                                <strong>{b.tutor}</strong>
+                                                <div>{b.subject} • {b.time}</div>
+                                            </div>
+                                            <button className="btn" onClick={() => setView('session')}>Start Session</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </main>
+
+                    {view === 'session' && (
+                        <div className="fade-in" style={{height: '100vh', background: 'black', color: 'white', padding: '2rem'}}>
+                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'}}>
+                                <h2>Live Session: 123</h2>
+                                <button className="btn" style={{background: 'red', border: 'none'}} onClick={() => setView('dashboard')}>End Session</button>
+                            </div>
+                            <div style={{height: '70vh', position: 'relative'}}>
+                                <video ref={videoRef} autoPlay playsInline muted />
+                                <div style={{position: 'absolute', bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem 1rem'}}>You (Sample User)</div>
+                            </div>
+                            <div style={{marginTop: '2rem', textAlign: 'center'}}>
+                                <button className="btn btn-outline" style={{color: 'white', borderColor: 'white'}} onClick={() => alert('Invite Link Copied: http://tutorlink.app/session/123')}>Invite Others</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
