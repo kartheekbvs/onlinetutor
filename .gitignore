@@ -1,0 +1,16 @@
+# Node
+node_modules/
+dist/
+.env
+
+# Java
+target/
+*.class
+.mvn/
+data/
+*.log
+
+# IDEs
+.idea/
+.vscode/
+*.swp
