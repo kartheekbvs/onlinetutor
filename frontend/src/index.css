@@ -1,11 +1,13 @@
 :root {
-  --bg-color: #ffffff;
-  --text-primary: #000000;
-  --text-secondary: #555555;
-  --border-color: #eeeeee;
-  --accent-color: #000000;
-  --hover-bg: #f9f9f9;
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --bg-dark: #050505;
+  --bg-light: #ffffff;
+  --accent: #00ffff;
+  --text-main: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --glass: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --font-geom: 'Inter', system-ui, -apple-system, sans-serif;
+  --perspective: 1200px;
 }
 
 * {
@@ -15,143 +17,166 @@
 }
 
 body {
-  background-color: var(--bg-color);
-  color: var(--text-primary);
-  font-family: var(--font-family);
-  line-height: 1.6;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: var(--font-geom);
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-#root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+/* Hyper-Premium 3D Perspective Grid */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
+  transform: perspective(500px) rotateX(60deg) translateY(-100px);
+  transform-origin: top;
+  mask-image: linear-gradient(to bottom, black, transparent);
+  pointer-events: none;
+  z-index: -1;
+  animation: grid-scroll 20s linear infinite;
 }
 
-/* Premium Navigation */
+@keyframes grid-scroll {
+  from { background-position: 0 0; }
+  to { background-position: 0 500px; }
+}
+
+/* Glossy Architectural Navigation */
 nav {
-  padding: 2rem 4rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--border-color);
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  padding: 1.5rem 4rem;
+  background: rgba(5, 5, 5, 0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 900;
   letter-spacing: -0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* 3D Kinetic Cards (Bento Style) */
+.card-3d {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  padding: 2.5rem;
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  transform-style: preserve-3d;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-3d:hover {
+  transform: translateY(-15px) rotateX(10deg) rotateY(-10deg);
+  border-color: var(--accent);
+  box-shadow: 0 50px 100px rgba(0, 255, 255, 0.1);
+}
+
+.card-3d::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(0, 255, 255, 0.15), transparent 400px);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.card-3d:hover::after {
+  opacity: 1;
+}
+
+/* Dynamic Java Trace Panel */
+.trace-panel {
+  position: fixed;
+  right: 2rem;
+  bottom: 2rem;
+  width: 350px;
+  height: 400px;
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid var(--accent);
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  padding: 1.5rem;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 30px 60px rgba(0, 255, 255, 0.2);
+  transform: translateZ(50px);
+}
+
+.trace-line {
+  margin-bottom: 0.5rem;
+  color: #0f0;
+  opacity: 0;
+  animation: trace-entry 0.3s forwards;
+}
+
+@keyframes trace-entry {
+  to { opacity: 1; transform: translateX(5px); }
+}
+
+/* Kinetic Typography */
+h1 {
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 900;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
   text-transform: uppercase;
 }
 
-.nav-links a {
-  margin-left: 2.5rem;
-  text-decoration: none;
-  color: var(--text-primary);
-  font-weight: 500;
-  font-size: 0.9rem;
-  transition: opacity 0.2s;
-}
-
-.nav-links a:hover {
-  opacity: 0.6;
-}
-
-/* Typography & Layout */
-h1 {
-  font-size: 4rem;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  margin-bottom: 1.5rem;
-  line-height: 1.1;
-}
-
-h2 {
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 4rem 2rem;
-}
-
-/* Buttons */
-.btn {
-  padding: 0.8rem 2rem;
-  border: 1px solid var(--text-primary);
-  background: var(--text-primary);
-  color: var(--bg-color);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  text-decoration: none;
-  display: inline-block;
-  font-size: 0.9rem;
-}
-
-.btn:hover {
-  background: var(--bg-color);
-  color: var(--text-primary);
-}
-
-.btn-outline {
+/* Magnetic Buttons */
+.btn-mag {
+  padding: 1.2rem 3rem;
   background: transparent;
-  color: var(--text-primary);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  position: relative;
+  transition: 0.3s;
+  overflow: hidden;
 }
 
-.btn-outline:hover {
-  background: var(--text-primary);
-  color: var(--bg-color);
+.btn-mag:hover {
+  background: var(--accent);
+  color: #000;
+  transform: scale(1.05);
 }
 
-/* Cards */
-.card {
-  border: 1px solid var(--border-color);
-  padding: 2rem;
-  transition: border-color 0.3s;
+/* Scroll Reveals */
+.reveal {
+  opacity: 0;
+  transform: translateY(50px) scale(0.95);
+  transition: all 1s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.card:hover {
-  border-color: var(--text-primary);
+.reveal.active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
-/* Input Fields */
-input, textarea, select {
-  width: 100%;
-  padding: 1rem;
-  border: 1px solid var(--border-color);
-  margin-bottom: 1.5rem;
-  font-family: inherit;
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.2s;
+/* Session Mirroring Effect */
+.video-overlay {
+  background: linear-gradient(45deg, rgba(0, 255, 255, 0.1), transparent);
+  mix-blend-mode: soft-light;
+  pointer-events: none;
 }
 
-input:focus, textarea:focus, select:focus {
-  border-color: var(--text-primary);
-}
-
-/* Animations */
-.fade-in {
-  animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Responsive */
 @media (max-width: 768px) {
-  nav { padding: 1.5rem 2rem; }
-  h1 { font-size: 2.5rem; }
-  .container { padding: 2rem 1.5rem; }
+  nav { padding: 1rem 1.5rem; }
+  .trace-panel { display: none; }
 }

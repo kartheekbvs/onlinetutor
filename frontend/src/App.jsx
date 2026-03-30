@@ -1,238 +1,251 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, User, BookOpen, Clock, CheckCircle, Bell, Search, Camera, Video, Mic, Plus, LogOut, Copy, UserPlus, X } from 'lucide-react';
+import { Terminal, Cpu, Box, Layout, Shield, Zap, Globe, MessageSquare, Camera, Video, Plus, LogOut, ChevronRight, Code, Database, Server, Eye, EyeOff, Link } from 'lucide-react';
 
-// Enhanced Mock Data including user requirements
 const INITIAL_TUTORS = [
-  { id: 1, name: 'Siva Charan', subject: 'Java', rate: 55, bio: 'Expert Java Developer. Specializing in Spring Boot and High-Level Architectures.', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop' },
-  { id: 2, name: 'Varsith', subject: 'Python', rate: 45, bio: 'Data Science enthusiast and Python expert. Passionate about AI/ML.', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop' },
-  { id: 3, name: 'Dr. Sarah Chen', subject: 'Advanced Mathematics', rate: 60, bio: 'PhD in Applied Math. 10+ years teaching experience.', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop' },
+  { id: 1, name: 'Siva Charan', subject: 'Java Architecture', rate: 55, bio: 'Expert Java Developer. Specializing in Low-Level Threading & Spring Boot Internals.', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop' },
+  { id: 2, name: 'Varsith', subject: 'Python Data Science', rate: 45, bio: 'Machine Learning engineer. Expert in NumPy, Pandas, and Tensor Flow architectures.', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop' },
 ];
 
+const CODE_MAPPING = {
+  login: { url: 'POST /api/auth/login', code: '@PostMapping("/login")\npublic ResponseEntity<?> authenticate(@RequestBody LoginRequest req) {\n  logger.info("AUTH: Attempting login for {}", req.getEmail());\n  return ResponseEntity.ok(userService.validate(req));\n}' },
+  tutors: { url: 'GET /api/tutors', code: '@GetMapping\npublic List<User> getTutors() {\n  logger.info("JPA: SELECT * FROM users WHERE role=\'TUTOR\'");\n  return userRepository.findByRole(Role.TUTOR);\n}' },
+  booking: { url: 'POST /api/bookings', code: '@PostMapping\npublic Booking create(@RequestBody Booking b) {\n  logger.info("JPA: PERSISTING NEW BOOKING for TutorID: {}", b.getTutorId());\n  return bookingRepository.save(b);\n}' },
+  system: { url: 'GET /api/system/architecture', code: '@GetMapping("/architecture")\npublic Map<String, Object> getArchitectureInfo() {\n  logger.info("JPA: SELECT * FROM system_metadata WHERE key=\'ARCH\'");\n  return systemService.getMetadata();\n}' }
+};
+
 const App = () => {
-  const [user, setUser] = useState(null); // { email: '...', role: '...' }
-  const [view, setView] = useState('login'); // login, home, tutors, dashboard, session, add-tutor
+  const [view, setView] = useState('login');
+  const [user, setUser] = useState(null);
   const [tutors, setTutors] = useState(INITIAL_TUTORS);
-  const [selectedTutor, setSelectedTutor] = useState(null);
+  const [isSourceMode, setIsSourceMode] = useState(false);
+  const [currentUrl, setCurrentUrl] = useState('POST /api/auth/login');
+  const [currentCode, setCurrentCode] = useState(CODE_MAPPING.login.code);
   const [bookings, setBookings] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [sessionCode, setSessionCode] = useState('');
+  const [trace, setTrace] = useState([
+    { timestamp: '21:34:12', msg: 'Spring Context Initialized...', type: 'SYSTEM' },
+    { timestamp: '21:34:15', msg: 'H2 Database connected to ./data/tutorlink', type: 'DB' }
+  ]);
   
-  // WebRTC Local Stream Ref
   const videoRef = useRef(null);
-  const [stream, setStream] = useState(null);
+  const traceEndRef = useRef(null);
+
+  const updateSource = (key) => {
+    if (CODE_MAPPING[key]) {
+      setCurrentUrl(CODE_MAPPING[key].url);
+      setCurrentCode(CODE_MAPPING[key].code);
+    }
+  };
+
+  const logTrace = (msg, type = 'JPA') => {
+    const timestamp = new Date().toLocaleTimeString('en-GB');
+    setTrace(prev => [...prev.slice(-12), { timestamp, msg, type }]);
+  };
+
+  useEffect(() => {
+    if (traceEndRef.current) traceEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [trace]);
 
   const handleLogin = (e) => {
     e.preventDefault();
-    const email = e.target.email.value;
-    const password = e.target.password.value;
-
-    if (email === 'sample123@gmail.com' && password === '123456') {
-      setUser({ email, name: 'Sample User', role: 'STUDENT' });
-      setView('home');
-      setNotifications([{ id: Date.now(), message: 'Welcome back, Sample User!', time: 'Just now' }]);
+    logTrace(`AUTH: Attempting login for ${e.target.email.value}`, 'SECURITY');
+    if (e.target.email.value === 'sample123@gmail.com' && e.target.password.value === '123456') {
+      setTimeout(() => {
+        logTrace(`JPA: SELECT * FROM users WHERE email='sample123@gmail.com'`, 'DB');
+        setUser({ name: 'Sample User' });
+        setView('home');
+        updateSource('system');
+      }, 500);
     } else {
-      alert('Invalid credentials. Use sample123@gmail.com / 123456');
+      logTrace(`AUTH: Invalid credentials`, 'ERROR');
+      alert('Use sample123@gmail.com / 123456');
     }
-  };
-
-  const handleAddTutor = (e) => {
-    e.preventDefault();
-    const newTutor = {
-      id: Date.now(),
-      name: e.target.name.value,
-      subject: e.target.subject.value,
-      rate: e.target.rate.value,
-      bio: e.target.bio.value,
-      image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop'
-    };
-    setTutors([newTutor, ...tutors]);
-    setView('tutors');
-    setNotifications([{ id: Date.now(), message: `Successfully added tutor: ${newTutor.name}`, time: 'Just now' }, ...notifications]);
-  };
-
-  const startSession = (bookingId) => {
-    const code = Math.floor(100000 + Math.random() * 900000);
-    setSessionCode(code);
-    setView('session');
-    
-    // Access Camera
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      .then(s => {
-        setStream(s);
-        if (videoRef.current) videoRef.current.srcObject = s;
-      })
-      .catch(err => console.error("Camera access denied:", err));
-  };
-
-  const stopSession = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-    setView('dashboard');
   };
 
   return (
-    <div className="fade-in">
-      {view !== 'login' && view !== 'session' && (
-        <nav>
-          <div className="logo" onClick={() => setView('home')} style={{cursor: 'pointer'}}>TutorLink</div>
-          <div className="nav-links">
-            <a href="#" onClick={() => setView('tutors')}>Tutors</a>
-            <a href="#" onClick={() => setView('add-tutor')}>Add Tutor</a>
-            <a href="#" onClick={() => setView('dashboard')}>Dashboard</a>
-            <button className="btn btn-outline" style={{ marginLeft: '1rem' }} onClick={() => setUser(null) || setView('login')}>
-              <LogOut size={16} style={{ marginRight: '0.5rem' }} /> Sign Out
-            </button>
-          </div>
-        </nav>
-      )}
+    <div className="app-container">
+      <div className="bg-grid"></div>
 
-      <main>
-        <AnimatePresence mode="wait">
-          {view === 'login' && (
-            <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="container" style={{ maxWidth: '400px', marginTop: '10vh' }}>
-              <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-                <h1 style={{ fontSize: '2.5rem' }}>Login</h1>
-                <p style={{ color: '#888' }}>Access your TutorLink account</p>
-              </div>
+      {/* source Mode Toggle */}
+      <div style={{ position: 'fixed', top: '1.5rem', right: '4rem', zIndex: 2001, display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: isSourceMode ? '#0ff' : '#666' }}>SOURCE MODE</span>
+        <div onClick={() => setIsSourceMode(!isSourceMode)} style={{ width: '50px', height: '24px', background: isSourceMode ? '#0ff' : '#222', borderRadius: '12px', position: 'relative', cursor: 'pointer', border: '1px solid #333' }}>
+          <div style={{ width: '18px', height: '18px', background: isSourceMode ? '#000' : '#444', borderRadius: '50%', position: 'absolute', top: '2px', left: isSourceMode ? '28px' : '3px', transition: '0.3s' }}></div>
+        </div>
+      </div>
+
+      {/* Live Java Trace Panel (Mobile hidden) */}
+      <div className="trace-panel">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid #0ff', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
+          <Terminal size={14} color="#0ff" />
+          <span style={{ color: '#0ff', fontSize: '0.7rem', fontWeight: '800' }}>BACKEND LIVE TRACE (JAVA 17)</span>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {trace.map((line, i) => (
+            <div key={i} className="trace-line">
+              <span style={{ opacity: 0.4 }}>[{line.timestamp}]</span>{' '}
+              <span style={{ color: line.type === 'DB' ? '#0ff' : line.type === 'ERROR' ? '#f00' : '#0f0' }}>{line.type}</span>:{' '}
+              {line.msg}
+            </div>
+          ))}
+          <div ref={traceEndRef} />
+        </div>
+      </div>
+
+      {/* Source Code & URL Overlay */}
+      <AnimatePresence>
+        {isSourceMode && (
+          <motion.div initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 100 }} style={{ position: 'fixed', left: '2rem', top: '1.5rem', bottom: '2rem', width: '400px', background: 'rgba(0,0,0,0.95)', border: '1px solid #0ff', padding: '2rem', zIndex: 1999, overflowY: 'auto', boxShadow: '0 0 50px rgba(0,255,255,0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: '#0ff', marginBottom: '2rem' }}>
+              <Code size={18} />
+              <h3 style={{ fontSize: '0.9rem' }}>ARCHITECTURAL LOGIC</h3>
+            </div>
+            
+            <div style={{ marginBottom: '2.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#666', fontSize: '0.7rem', marginBottom: '0.5rem' }}><Link size={12} /> ENDPOINT URL</div>
+                <div style={{ padding: '0.8rem', background: '#111', border: '1px solid #222', borderRadius: '4px', fontSize: '0.8rem', color: '#0ff', fontFamily: 'monospace' }}>{currentUrl}</div>
+            </div>
+
+            <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#666', fontSize: '0.7rem', marginBottom: '0.5rem' }}><Server size={12} /> JAVA CONTROLLER SNIPPET</div>
+                <pre style={{ padding: '1rem', background: '#080808', borderLeft: '3px solid #0ff', fontSize: '0.75rem', color: '#bbb', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                  {currentCode}
+                </pre>
+            </div>
+            
+            <div style={{ marginTop: '3rem', fontSize: '0.7rem', color: '#444' }}>
+                *Visualization mode enabled. High-level Spring Boot mapping detected. 
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {view === 'login' ? (
+          <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="container" style={{ maxWidth: '500px', padding: '15vh 0' }}>
+            <div className="card-3d reveal active" style={{ padding: '4rem' }}>
+              <h1 style={{ fontSize: '3rem', marginBottom: '2rem' }}>Portal</h1>
               <form onSubmit={handleLogin}>
-                <label>Email Address</label>
-                <input name="email" type="email" placeholder="sample123@gmail.com" required />
-                <label>Password</label>
-                <input name="password" type="password" placeholder="123456" required />
-                <button type="submit" className="btn" style={{ width: '100%', marginTop: '1rem' }}>Sign In</button>
+                <input name="email" type="email" placeholder="sample123@gmail.com" required style={{ background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '2rem', outline: 'none' }} />
+                <input name="password" type="password" placeholder="123456" required style={{ background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '3rem', outline: 'none' }} />
+                <button className="btn-mag" style={{ width: '100%' }}>Initialize Session</button>
               </form>
-            </motion.div>
-          )}
-
-          {view === 'home' && (
-            <motion.div key="home" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="container">
-              <h1>Welcome, {user?.name}</h1>
-              <p style={{ fontSize: '1.2rem', color: '#555', marginBottom: '2.5rem', maxWidth: '600px' }}>
-                Manage your sessions, discover new tutors, and elevate your learning experience.
-              </p>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <button className="btn" onClick={() => setView('tutors')}>Find Tutors</button>
-                <button className="btn btn-outline" onClick={() => setView('dashboard')}>View Dashboard</button>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div key="main" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ paddingLeft: isSourceMode ? '450px' : '0', transition: '0.5s cubic-bezier(0.23, 1, 0.32, 1)' }}>
+            <nav style={{ paddingRight: '12rem' }}>
+              <div className="logo" onClick={() => setView('home')}>TutorLink</div>
+              <div className="nav-links">
+                <a href="#" onClick={() => { setView('home'); logTrace('EVENT: Navigating to HOME', 'UI'); updateSource('system'); }}>Home</a>
+                <a href="#" onClick={() => { setView('tutors'); logTrace('JPA: FETCH ALL TUTORS', 'DB'); updateSource('tutors'); }}>Tutors</a>
+                <a href="#" onClick={() => { setView('about'); logTrace('EVENT: VIEW ARCHITECTURE', 'UI'); updateSource('system'); }}>Architecture</a>
+                <a href="https://twss.netlify.app/contact" target="_blank" onClick={() => logTrace('REDIRECT: Support portal', 'SYSTEM')}>Support</a>
+                <button onClick={() => setUser(null) || setView('login')} style={{ background: 'transparent', border: 'none', color: '#0ff', cursor: 'pointer', fontWeight: '800' }}>EXIT</button>
               </div>
-            </motion.div>
-          )}
+            </nav>
 
-          {view === 'tutors' && (
-            <motion.div key="tutors" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="container">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h2>Expert Tutors</h2>
-                <button className="btn btn-outline" onClick={() => setView('add-tutor')}>
-                  <Plus size={16} /> Add Tutor
-                </button>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-                {tutors.map((t) => (
-                  <div key={t.id} className="card fade-in">
-                    <img src={t.image} alt={t.name} style={{ width: '100%', height: '220px', objectFit: 'cover', marginBottom: '1.5rem', filter: 'grayscale(1)' }} />
-                    <h3>{t.name}</h3>
-                    <p style={{ color: '#888', fontWeight: '600' }}>{t.subject}</p>
-                    <p style={{ fontSize: '0.9rem', color: '#555', margin: '1rem 0' }}>{t.bio}</p>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: '700' }}>${t.rate}/hr</span>
-                      <button className="btn" onClick={() => { setBookings([{ id: Date.now(), tutorName: t.name, subject: t.subject, time: 'Today, 2:00 PM', status: 'Upcoming' }, ...bookings]); setView('dashboard'); }}>Book Now</button>
+            <div className="container">
+              {view === 'home' && (
+                <div style={{ marginTop: '5vh' }}>
+                  <motion.h1 initial={{ x: -100 }} animate={{ x: 0 }} transition={{ type: 'spring' }}>Architectural <br/> Learning.</motion.h1>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '1.5rem', marginTop: '2rem', maxWidth: '600px' }}>
+                    Connect with world-class engineers. Experience backend visibility and high-fidelity video mentoring.
+                  </p>
+                  <div style={{ marginTop: '4rem', display: 'flex', gap: '2rem' }}>
+                    <button className="btn-mag" onClick={() => { setView('tutors'); updateSource('tutors'); }}>Find Tutors</button>
+                    <button className="btn-mag" style={{ borderColor: '#fff', color: '#fff' }} onClick={() => setView('about')}>Our Story</button>
+                  </div>
+                </div>
+              )}
+
+              {view === 'about' && (
+                <div>
+                  <h1>Our <br/> Backbone.</h1>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', marginTop: '6rem' }}>
+                    <div className="card-3d">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                        <Database color="#0ff" />
+                        <h3 style={{ color: '#0ff' }}>Persistence</h3>
+                      </div>
+                      <p>High-level file-based H2 database integration for enterprise-grade data management.</p>
+                      <div style={{ marginTop: '2rem', fontSize: '0.8rem', opacity: 0.5, fontFamily: 'monospace' }}>
+                        $ mvn spring-boot:run --file-db
+                      </div>
+                    </div>
+                    <div className="card-3d">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                        <Video color="#0ff" />
+                        <h3 style={{ color: '#0ff' }}>WebRTC</h3>
+                      </div>
+                      <p>Low-latency peer-to-peer video sessions with real-time signal mirroring.</p>
+                      <div style={{ marginTop: '2rem', fontSize: '0.8rem', opacity: 0.5, fontFamily: 'monospace' }}>
+                        STUN/TURN: Initializing PeerJS...
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {view === 'add-tutor' && (
-            <motion.div key="add-tutor" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="container" style={{ maxWidth: '600px' }}>
-              <h2>Add New Tutor</h2>
-              <form onSubmit={handleAddTutor} style={{ marginTop: '2rem' }}>
-                <label>Full Name</label>
-                <input name="name" placeholder="e.g. Siva Charan" required />
-                <label>Subject Expertise</label>
-                <input name="subject" placeholder="e.g. Java, Python" required />
-                <label>Hourly Rate ($)</label>
-                <input name="rate" type="number" placeholder="45" required />
-                <label>Professional Bio</label>
-                <textarea name="bio" rows="4" placeholder="Briefly describe your experience..." required />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <button type="button" className="btn btn-outline" onClick={() => setView('tutors')}>Cancel</button>
-                  <button type="submit" className="btn">Add Tutor Profile</button>
                 </div>
-              </form>
-            </motion.div>
-          )}
+              )}
 
-          {view === 'dashboard' && (
-            <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="container">
-              <h2>Your Learning Dashboard</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '3rem', marginTop: '2rem' }}>
+              {view === 'tutors' && (
                 <div>
-                  <h3 style={{ marginBottom: '1.5rem' }}>Upcoming Sessions</h3>
-                  {bookings.map(b => (
-                    <div key={b.id} className="card" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <strong>{b.tutorName}</strong>
-                        <div style={{ fontSize: '0.9rem', color: '#555' }}>{b.subject} • {b.time}</div>
-                      </div>
-                      <button className="btn" onClick={() => startSession(b.id)}>Join Room</button>
-                    </div>
-                  ))}
-                </div>
-                <div className="card">
-                  <h3>Recent Notifications</h3>
-                  <div style={{ marginTop: '1.5rem' }}>
-                    {notifications.length === 0 ? <p style={{ color: '#888' }}>No new notifications.</p> : notifications.map(n => (
-                      <div key={n.id} style={{ marginBottom: '1rem', borderBottom: '1px solid #eee', paddingBottom: '0.5rem' }}>
-                        <div style={{ fontSize: '0.9rem' }}>{n.message}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#aaa' }}>{n.time}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4rem' }}>
+                    <h2 style={{ fontSize: '3rem' }}>The Faculty</h2>
+                    <button className="btn-mag" onClick={() => { setView('add-tutor'); updateSource('tutors'); }}>JOIN AS TUTOR</button>
+                  </div>
+                  <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '3rem' }}>
+                    {tutors.map(t => (
+                      <div key={t.id} className="card-3d" onMouseMove={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                        e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+                      }}>
+                        <img src={t.image} alt={t.name} style={{ width: '100%', height: '250px', objectFit: 'cover', filter: 'brightness(0.7)' }} />
+                        <h3 style={{ marginTop: '2rem', color: '#0ff' }}>{t.name}</h3>
+                        <p style={{ fontWeight: '800', margin: '0.5rem 0' }}>{t.subject}</p>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem' }}>{t.bio}</p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '1.5rem', fontWeight: '900' }}>${t.rate}/HR</span>
+                          <button className="btn-mag" style={{ padding: '0.8rem 1.5rem' }} onClick={() => {
+                            logTrace(`JPA: Persisting BOOKING for ${t.name}`, 'DB');
+                            updateSource('booking');
+                            setBookings([...bookings, { id: Date.now(), tutor: t.name, subject: t.subject }]);
+                            alert('Session Scheduled. Code trace updated.');
+                          }}>Book Now</button>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
+              )}
 
-          {view === 'session' && (
-            <motion.div key="session" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ height: '100vh', background: 'black', color: 'white', padding: '2rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h2 style={{ color: 'white' }}>Live Session: {sessionCode}</h2>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <button className="btn btn-outline" style={{ borderColor: 'white', color: 'white' }} onClick={() => { navigator.clipboard.writeText(`http://tutorlink.app/session/${sessionCode}`); alert('Invite link copied!'); }}>
-                    <UserPlus size={16} style={{ marginRight: '0.5rem' }} /> Invite Others
-                  </button>
-                  <button className="btn" style={{ background: '#ff4444', border: 'none' }} onClick={stopSession}>End Session</button>
-                </div>
-              </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '2rem', height: 'calc(100% - 150px)' }}>
-                <div style={{ background: '#111', borderRadius: '1rem', overflow: 'hidden', position: 'relative' }}>
-                  <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontSize: '0.8rem' }}>
-                    You (Sample User)
-                  </div>
-                </div>
-                <div style={{ background: '#111', borderRadius: '1rem', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-                  <h4 style={{ marginBottom: '1rem' }}>Participants</h4>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                      <div style={{ width: '32px', height: '32px', background: '#333', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>S</div>
-                      <span>Sample User (Host)</span>
+              {view === 'add-tutor' && (
+                <div style={{ maxWidth: '600px' }}>
+                    <h1>Sign Up <br/> as Tutor</h1>
+                    <div className="card-3d" style={{ marginTop: '4rem' }}>
+                        <form onSubmit={(e) => { e.preventDefault(); setTutors([{id: Date.now(), name: e.target.name.value, subject: e.target.subj.value, rate: e.target.rate.value, bio: e.target.bio.value, image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400'}, ...tutors]); setView('tutors'); logTrace('JPA: SAVING NEW TUTOR_ONBOARDING', 'DB'); }}>
+                            <input name="name" placeholder="Full Professional Name" required style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '1.5rem', outline: 'none' }} />
+                            <input name="subj" placeholder="Domain Expertise (e.g. Java Engine)" required style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '1.5rem', outline: 'none' }} />
+                            <input name="rate" type="number" placeholder="Hourly Rate ($)" required style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '1.5rem', outline: 'none' }} />
+                            <textarea name="bio" placeholder="Architectural Experience / Bio" required style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '3rem', outline: 'none', minHeight: '100px' }} />
+                            <button className="btn-mag" style={{ width: '100%' }}>SUBMIT APPLICATION</button>
+                        </form>
                     </div>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #333' }}>
-                    <Mic size={24} style={{ cursor: 'pointer', color: '#888' }} />
-                    <Video size={24} style={{ cursor: 'pointer', color: '#888' }} />
-                  </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <footer style={{ background: '#080808', padding: '6rem 4rem', marginTop: '10rem', borderTop: '1px solid #111' }}>
+        <div className="container" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4rem' }}>
+          <div><div className="logo">TutorLink</div><p style={{ color: '#555', marginTop: '1rem' }}>Architectural scale education platform.</p></div>
+          <div><h4>System</h4><p style={{ color: '#555', marginTop: '1rem' }}>Java 17<br/>React 18<br/>WebRTC</p></div>
+          <div><h4>Support</h4><p style={{ color: '#555', marginTop: '1rem' }}><a href="https://twss.netlify.app/contact" style={{ color: '#0ff' }}>Support Portal</a></p></div>
+          <div><h4>Project</h4><p style={{ color: '#555', marginTop: '1rem' }}><a href="#" onClick={() => logTrace('EVENT: Redirecting to GITHUB', 'SECURITY')}>Github Source</a></p></div>
+        </div>
+      </footer>
     </div>
   );
 };
