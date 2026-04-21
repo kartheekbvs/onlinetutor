@@ -13,6 +13,11 @@ const CODE_MAPPING = {
   system: { url: 'GET /api/system/architecture', code: '// Node.js Express\napp.get("/api/system/architecture", (req, res) => {\n  res.json({ engine: "Node.js Express", realtime: "Socket.io" });\n});' }
 };
 
+const INITIAL_TUTORS = [
+  { id: 1, name: 'Siva Charan', subject: 'Java Architecture', rate: 55, bio: 'Expert Java Developer. Specializing in Low-Level Threading & Spring Boot Internals.', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop' },
+  { id: 2, name: 'Varsith', subject: 'Python Data Science', rate: 45, bio: 'Machine Learning engineer. Expert in NumPy, Pandas, and Tensor Flow architectures.', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop' },
+];
+
 const VideoSession = ({ onEnd, tutorName }) => {
   const videoRef = useRef(null);
   const [stream, setStream] = useState(null);
@@ -112,7 +117,7 @@ const VideoSession = ({ onEnd, tutorName }) => {
 const App = () => {
   const [view, setView] = useState('login');
   const [user, setUser] = useState(null);
-  const [tutors, setTutors] = useState([]);
+  const [tutors, setTutors] = useState(INITIAL_TUTORS);
   const [isSourceMode, setIsSourceMode] = useState(false);
   const [currentUrl, setCurrentUrl] = useState('POST /api/auth/login');
   const [currentCode, setCurrentCode] = useState(CODE_MAPPING.login.code);
@@ -122,25 +127,49 @@ const App = () => {
   
   // Connect to Backend
   useEffect(() => {
-    fetchTutors();
+    if (view === 'tutors' || view === 'home') {
+      fetchTutors();
+    }
     
     socket.on('new_booking', (booking) => {
-      setNotifications(prev => [{ id: Date.now(), text: `New booking: ${booking.tutor} for ${booking.subject}` }, ...prev]);
+      setNotifications(prev => [{ id: Date.now(), text: `New booking: ${booking.tutor || booking.name} for ${booking.subject || booking.subjects}` }, ...prev]);
       setTimeout(() => {
         setNotifications(prev => prev.filter(n => Date.now() - n.id < 5000));
       }, 5000);
     });
 
     return () => socket.off('new_booking');
-  }, []);
+  }, [view]);
 
   const fetchTutors = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/tutors`);
+      if (!res.ok) throw new Error('Network response was not ok');
       const data = await res.json();
-      setTutors(data);
+      
+      // Normalize data from Java/Node backends
+      const normalized = Array.isArray(data) ? data.map(t => ({
+        id: t.id,
+        name: t.name || t.username,
+        subject: t.subject || t.subjects || 'General Mentoring',
+        rate: t.rate || t.hourlyRate || 0,
+        bio: t.bio || 'Professional Mentor',
+        image: t.image || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400'
+      })) : [];
+
+      // Combine with initial tutors, avoiding duplicates by ID
+      setTutors(prev => {
+        const combined = [...prev];
+        normalized.forEach(nTutor => {
+          if (!combined.some(c => c.id === nTutor.id)) {
+            combined.push(nTutor);
+          }
+        });
+        return combined;
+      });
     } catch (err) {
       console.error('Failed to fetch tutors:', err);
+      // Keep initial tutors if fetch fails
     }
   };
 

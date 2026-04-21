@@ -177,7 +177,21 @@ h1 {
   pointer-events: none;
 }
 
+/* Structure & Layout */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 4rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 3rem;
+}
+
 @media (max-width: 768px) {
   nav { padding: 1rem 1.5rem; }
   .trace-panel { display: none; }
+  .container { padding: 0 1.5rem; }
 }
