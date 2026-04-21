@@ -1,29 +1,148 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Terminal, Cpu, Box, Layout, Shield, Zap, Globe, MessageSquare, Camera, Video, Plus, LogOut, ChevronRight, Code, Database, Server, Eye, EyeOff, Link } from 'lucide-react';
+import { Terminal, Cpu, Box, Layout, Shield, Zap, Globe, MessageSquare, Camera, Video, Plus, LogOut, ChevronRight, Code, Database, Server, Eye, EyeOff, Link, Bell, X, Mic, MicOff, VideoOff, Settings } from 'lucide-react';
+import { io } from 'socket.io-client';
 
-const INITIAL_TUTORS = [
-  { id: 1, name: 'Siva Charan', subject: 'Java Architecture', rate: 55, bio: 'Expert Java Developer. Specializing in Low-Level Threading & Spring Boot Internals.', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop' },
-  { id: 2, name: 'Varsith', subject: 'Python Data Science', rate: 45, bio: 'Machine Learning engineer. Expert in NumPy, Pandas, and Tensor Flow architectures.', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop' },
-];
+const API_BASE = 'http://localhost:8080';
+const socket = io(API_BASE);
 
 const CODE_MAPPING = {
-  login: { url: 'POST /api/auth/login', code: '@PostMapping("/login")\npublic ResponseEntity<?> authenticate(@RequestBody LoginRequest req) {\n  return ResponseEntity.ok(userService.validate(req));\n}' },
-  tutors: { url: 'GET /api/tutors', code: '@GetMapping\npublic List<User> getTutors() {\n  return userRepository.findByRole(Role.TUTOR);\n}' },
-  booking: { url: 'POST /api/bookings', code: '@PostMapping\npublic Booking create(@RequestBody Booking b) {\n  return bookingRepository.save(b);\n}' },
-  system: { url: 'GET /api/system/architecture', code: '@GetMapping("/architecture")\npublic Map<String, Object> getArchitectureInfo() {\n  return systemService.getMetadata();\n}' }
+  login: { url: 'POST /api/auth/login', code: '// Node.js Express\napp.post("/api/auth/login", (req, res) => {\n  const user = validate(req.body);\n  res.json(user);\n});' },
+  tutors: { url: 'GET /api/tutors', code: '// Node.js Express\napp.get("/api/tutors", (req, res) => {\n  const data = readData();\n  res.json(data.tutors);\n});' },
+  booking: { url: 'POST /api/bookings', code: '// Node.js Express\napp.post("/api/bookings", (req, res) => {\n  const newBooking = { ...req.body, status: "PENDING" };\n  io.emit("new_booking", newBooking);\n  res.status(201).json(newBooking);\n});' },
+  system: { url: 'GET /api/system/architecture', code: '// Node.js Express\napp.get("/api/system/architecture", (req, res) => {\n  res.json({ engine: "Node.js Express", realtime: "Socket.io" });\n});' }
+};
+
+const VideoSession = ({ onEnd, tutorName }) => {
+  const videoRef = useRef(null);
+  const [stream, setStream] = useState(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [logs, setLogs] = useState(['[SYSTEM] Initializing RTC Handshake...', '[SYSTEM] Connection: P2P Tunnel Established']);
+
+  useEffect(() => {
+    const startCamera = async () => {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        setStream(s);
+        if (videoRef.current) videoRef.current.srcObject = s;
+        setLogs(prev => [...prev, '[MEDIA] Camera Stream: ACTIVE', '[MEDIA] Microphone: SYNCED']);
+      } catch (err) {
+        setLogs(prev => [...prev, '[ERROR] Camera Access Denied', '[WARN] Running in Simulation Mode']);
+      }
+    };
+    startCamera();
+    return () => stream?.getTracks().forEach(t => t.stop());
+  }, []);
+
+  const toggleMute = () => {
+    if (stream) {
+      stream.getAudioTracks().forEach(t => t.enabled = !t.enabled);
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const toggleVideo = () => {
+    if (stream) {
+      stream.getVideoTracks().forEach(t => t.enabled = !t.enabled);
+      setIsVideoOff(!isVideoOff);
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="session-container" style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 5000, display: 'flex', flexDirection: 'column' }}>
+      <div className="bg-grid"></div>
+      
+      {/* Session Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2rem 4rem', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,255,255,0.1)' }}>
+        <div>
+          <div style={{ color: '#0ff', fontSize: '0.7rem', fontWeight: '900', letterSpacing: '0.2em', marginBottom: '0.5rem' }}>LIVE SESSION ACTIVE</div>
+          <h2 style={{ fontSize: '1.5rem', textTransform: 'uppercase' }}>Mentoring with {tutorName}</h2>
+        </div>
+        <button className="btn-mag" onClick={onEnd} style={{ borderColor: '#f00', color: '#f00' }}>END SESSION</button>
+      </div>
+
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem', padding: '2rem' }}>
+        {/* Video Area */}
+        <div className="card-3d" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 0 }}>
+          {isVideoOff ? (
+            <div style={{ fontSize: '5rem', color: '#333' }}><VideoOff size={100} /></div>
+          ) : (
+            <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          )}
+          <div className="video-overlay" style={{ position: 'absolute', inset: 0 }}></div>
+          
+          {/* Controls Overlay */}
+          <div style={{ position: 'absolute', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '1.5rem' }}>
+             <button onClick={toggleMute} style={{ width: '60px', height: '60px', borderRadius: '50%', border: '1px solid #333', background: isMuted ? '#f00' : 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
+               {isMuted ? <MicOff /> : <Mic />}
+             </button>
+             <button onClick={toggleVideo} style={{ width: '60px', height: '60px', borderRadius: '50%', border: '1px solid #333', background: isVideoOff ? '#f00' : 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
+               {isVideoOff ? <VideoOff /> : <Video />}
+             </button>
+             <button style={{ width: '60px', height: '60px', borderRadius: '50%', border: '1px solid #333', background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
+               <Settings />
+             </button>
+          </div>
+        </div>
+
+        {/* Audit/Trace Sidebar */}
+        <div className="card-3d" style={{ background: 'rgba(0,0,0,0.5)', padding: '2rem', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#0ff', marginBottom: '2rem' }}>
+            <Terminal size={18} />
+            <h3 style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>Session Trace</h3>
+          </div>
+          <div style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.75rem', color: '#666', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+            {logs.map((log, i) => (
+              <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className={log.includes('ERROR') ? 'trace-error' : ''}>
+                 {log}
+              </motion.div>
+            ))}
+          </div>
+          <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'rgba(0,255,255,0.05)', border: '1px solid rgba(0,255,255,0.1)', borderRadius: '4px' }}>
+             <div style={{ color: '#0ff', fontSize: '0.6rem', marginBottom: '0.5rem' }}>PEER STATUS</div>
+             <div style={{ fontSize: '0.8rem' }}>Waiting for tutor to sync...</div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
 };
 
 const App = () => {
   const [view, setView] = useState('login');
   const [user, setUser] = useState(null);
-  const [tutors, setTutors] = useState(INITIAL_TUTORS);
+  const [tutors, setTutors] = useState([]);
   const [isSourceMode, setIsSourceMode] = useState(false);
   const [currentUrl, setCurrentUrl] = useState('POST /api/auth/login');
   const [currentCode, setCurrentCode] = useState(CODE_MAPPING.login.code);
   const [bookings, setBookings] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [activeTutor, setActiveTutor] = useState(null);
   
-  const videoRef = useRef(null);
+  // Connect to Backend
+  useEffect(() => {
+    fetchTutors();
+    
+    socket.on('new_booking', (booking) => {
+      setNotifications(prev => [{ id: Date.now(), text: `New booking: ${booking.tutor} for ${booking.subject}` }, ...prev]);
+      setTimeout(() => {
+        setNotifications(prev => prev.filter(n => Date.now() - n.id < 5000));
+      }, 5000);
+    });
+
+    return () => socket.off('new_booking');
+  }, []);
+
+  const fetchTutors = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/tutors`);
+      const data = await res.json();
+      setTutors(data);
+    } catch (err) {
+      console.error('Failed to fetch tutors:', err);
+    }
+  };
 
   const updateSource = (key) => {
     if (CODE_MAPPING[key]) {
@@ -52,9 +171,68 @@ const App = () => {
     }
   };
 
+  const handleApplyTutor = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const tutorData = {
+      name: formData.get('name'),
+      subject: formData.get('subj'),
+      rate: Number(formData.get('rate')),
+      bio: formData.get('bio')
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/api/tutors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tutorData)
+      });
+      if (res.ok) {
+        fetchTutors();
+        setView('tutors');
+      }
+    } catch (err) {
+      alert('Failed to apply.');
+    }
+  };
+
+  const handleBookSession = async (t) => {
+    updateSource('booking');
+    try {
+      const res = await fetch(`${API_BASE}/api/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tutor: t.name, subject: t.subject, student: user?.name })
+      });
+      if (res.ok) {
+        const booking = await res.json();
+        setBookings([...bookings, booking]);
+        setActiveTutor(t.name);
+        setView('session'); // Navigate to Room and Camera
+      }
+    } catch (err) {
+      alert('Booking failed.');
+    }
+  };
+
   return (
     <div className="app-container">
       <div className="bg-grid"></div>
+
+      {view === 'session' && (
+        <VideoSession tutorName={activeTutor} onEnd={() => setView('tutors')} />
+      )}
+
+      {/* Notifications Portal */}
+      <div style={{ position: 'fixed', top: '5rem', right: '4rem', zIndex: 3000, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <AnimatePresence>
+          {notifications.map(n => (
+            <motion.div key={n.id} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} style={{ background: 'rgba(0, 255, 255, 0.9)', color: '#000', padding: '0.8rem 1.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 10px 30px rgba(0,255,255,0.4)' }}>
+              <Bell size={14} /> {n.text}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
 
       {/* source Mode Toggle */}
       <div style={{ position: 'fixed', top: '1.5rem', right: '4rem', zIndex: 2001, display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -79,7 +257,7 @@ const App = () => {
             </div>
 
             <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#666', fontSize: '0.7rem', marginBottom: '0.5rem' }}><Server size={12} /> JAVA CONTROLLER SNIPPET</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#666', fontSize: '0.7rem', marginBottom: '0.5rem' }}><Server size={12} /> NODE EXERT SNIPPET</div>
                 <pre style={{ padding: '1rem', background: '#080808', borderLeft: '3px solid #0ff', fontSize: '0.75rem', color: '#bbb', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
                   {currentCode}
                 </pre>
@@ -113,7 +291,7 @@ const App = () => {
               </div>
             </nav>
 
-            <div className="container">
+            <div className="container" style={{ visibility: view === 'session' ? 'hidden' : 'visible' }}>
               {view === 'home' && (
                 <div style={{ marginTop: '5vh' }}>
                   <motion.h1 initial={{ x: -100 }} animate={{ x: 0 }} transition={{ type: 'spring' }}>Architectural <br/> Learning.</motion.h1>
@@ -136,19 +314,19 @@ const App = () => {
                         <Database color="#0ff" />
                         <h3 style={{ color: '#0ff' }}>Persistence</h3>
                       </div>
-                      <p>High-level file-based H2 database integration for enterprise-grade data management.</p>
+                      <p>High-level file-based JSON storage integration for enterprise-grade data management.</p>
                       <div style={{ marginTop: '2rem', fontSize: '0.8rem', opacity: 0.5, fontFamily: 'monospace' }}>
-                        $ mvn spring-boot:run --file-db
+                        $ node server.js --file-db
                       </div>
                     </div>
                     <div className="card-3d">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                        <Video color="#0ff" />
-                        <h3 style={{ color: '#0ff' }}>WebRTC</h3>
+                        <Zap color="#0ff" />
+                        <h3 style={{ color: '#0ff' }}>Socket.io</h3>
                       </div>
-                      <p>Low-latency peer-to-peer video sessions with real-time signal mirroring.</p>
+                      <p>Full-duplex real-time signaling for instant booking confirmations and system triggers.</p>
                       <div style={{ marginTop: '2rem', fontSize: '0.8rem', opacity: 0.5, fontFamily: 'monospace' }}>
-                        STUN/TURN: Initializing PeerJS...
+                        Status: WebSockets Handshaking...
                       </div>
                     </div>
                   </div>
@@ -168,17 +346,13 @@ const App = () => {
                         e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
                         e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
                       }}>
-                        <img src={t.image} alt={t.name} style={{ width: '100%', height: '250px', objectFit: 'cover', filter: 'brightness(0.7)' }} />
+                        <img src={t.image} alt={t.name} style={{ width: '100%', height: '240px', objectFit: 'cover', filter: 'brightness(0.7)' }} />
                         <h3 style={{ marginTop: '2rem', color: '#0ff' }}>{t.name}</h3>
                         <p style={{ fontWeight: '800', margin: '0.5rem 0' }}>{t.subject}</p>
                         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem' }}>{t.bio}</p>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span style={{ fontSize: '1.5rem', fontWeight: '900' }}>${t.rate}/HR</span>
-                          <button className="btn-mag" style={{ padding: '0.8rem 1.5rem' }} onClick={() => {
-                            updateSource('booking');
-                            setBookings([...bookings, { id: Date.now(), tutor: t.name, subject: t.subject }]);
-                            alert('Session Scheduled. Code trace updated.');
-                          }}>Book Now</button>
+                          <button className="btn-mag" style={{ padding: '0.8rem 1.5rem' }} onClick={() => handleBookSession(t)}>Book Now</button>
                         </div>
                       </div>
                     ))}
@@ -190,7 +364,7 @@ const App = () => {
                 <div style={{ maxWidth: '600px' }}>
                     <h1>Sign Up <br/> as Tutor</h1>
                     <div className="card-3d" style={{ marginTop: '4rem' }}>
-                        <form onSubmit={(e) => { e.preventDefault(); setTutors([{id: Date.now(), name: e.target.name.value, subject: e.target.subj.value, rate: e.target.rate.value, bio: e.target.bio.value, image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400'}, ...tutors]); setView('tutors'); }}>
+                        <form onSubmit={handleApplyTutor}>
                             <input name="name" placeholder="Full Professional Name" required style={{ background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '1.5rem', outline: 'none' }} />
                             <input name="subj" placeholder="Domain Expertise (e.g. Java Engine)" required style={{ background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '1.5rem', outline: 'none' }} />
                             <input name="rate" type="number" placeholder="Hourly Rate ($)" required style={{ background: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', padding: '1rem 0', width: '100%', marginBottom: '1.5rem', outline: 'none' }} />
@@ -208,7 +382,7 @@ const App = () => {
       <footer style={{ background: '#080808', padding: '6rem 4rem', marginTop: '10rem', borderTop: '1px solid #111' }}>
         <div className="container" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4rem' }}>
           <div><div className="logo">TutorLink</div><p style={{ color: '#555', marginTop: '1rem' }}>Architectural scale education platform.</p></div>
-          <div><h4>System</h4><p style={{ color: '#555', marginTop: '1rem' }}>Java 17<br/>React 18<br/>WebRTC</p></div>
+          <div><h4>System</h4><p style={{ color: '#555', marginTop: '1rem' }}>Node.js Express<br/>React 18<br/>Socket.io</p></div>
           <div><h4>Support</h4><p style={{ color: '#555', marginTop: '1rem' }}><a href="https://twss.netlify.app/contact" style={{ color: '#0ff' }}>Support Portal</a></p></div>
           <div><h4>Project</h4><p style={{ color: '#555', marginTop: '1rem' }}><a href="#">Github Source</a></p></div>
         </div>

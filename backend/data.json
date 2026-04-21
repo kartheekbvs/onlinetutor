@@ -1,0 +1,113 @@
+{
+  "tutors": [
+    {
+      "id": 1,
+      "name": "Siva Charan",
+      "subject": "Java Architecture",
+      "rate": 55,
+      "bio": "Expert Java Developer. Specializing in Low-Level Threading & Spring Boot Internals.",
+      "image": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop"
+    },
+    {
+      "id": 2,
+      "name": "Varsith",
+      "subject": "Python Data Science",
+      "rate": 45,
+      "bio": "Machine Learning engineer. Expert in NumPy, Pandas, and Tensor Flow architectures.",
+      "image": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop"
+    }
+  ],
+  "bookings": [
+    {
+      "id": 1776616744572,
+      "tutor": "Siva Charan",
+      "subject": "Java Architecture",
+      "student": "Sample User",
+      "status": "PENDING"
+    },
+    {
+      "id": 1776616749094,
+      "tutor": "Siva Charan",
+      "subject": "Java Architecture",
+      "student": "Sample User",
+      "status": "PENDING"
+    },
+    {
+      "id": 1776616752380,
+      "tutor": "Varsith",
+      "subject": "Python Data Science",
+      "student": "Sample User",
+      "status": "PENDING"
+    },
+    {
+      "id": 1776616761085,
+      "tutor": "Siva Charan",
+      "subject": "Java Architecture",
+      "student": "Sample User",
+      "status": "PENDING"
+    },
+    {
+      "id": 1776616793410,
+      "tutor": "Siva Charan",
+      "subject": "Java Architecture",
+      "student": "Sample User",
+      "status": "PENDING"
+    },
+    {
+      "id": 1776616811873,
+      "tutor": "Siva Charan",
+      "subject": "Java Architecture",
+      "student": "Sample User",
+      "status": "PENDING"
+    },
+    {
+      "id": 1776616929250,
+      "tutor": "Siva Charan",
+      "subject": "Java Architecture",
+      "student": "Sample User",
+      "status": "PENDING"
+    },
+    {
+      "id": 1776616936273,
+      "tutor": "Siva Charan",
+      "subject": "Java Architecture",
+      "student": "Sample User",
+      "status": "PENDING"
+    },
+    {
+      "id": 1776616970388,
+      "tutor": "Varsith",
+      "subject": "Python Data Science",
+      "student": "Sample User",
+      "status": "PENDING"
+    },
+    {
+      "id": 1776616998019,
+      "tutor": "Siva Charan",
+      "subject": "Java Architecture",
+      "student": "Sample User",
+      "status": "PENDING"
+    },
+    {
+      "id": 1776657478011,
+      "tutor": "Siva Charan",
+      "subject": "Java Architecture",
+      "student": "Sample User",
+      "status": "PENDING"
+    },
+    {
+      "id": 1776657599711,
+      "tutor": "Siva Charan",
+      "subject": "Java Architecture",
+      "student": "Sample User",
+      "status": "PENDING"
+    },
+    {
+      "id": 1776657642294,
+      "tutor": "Siva Charan",
+      "subject": "Java Architecture",
+      "student": "Sample User",
+      "status": "PENDING"
+    }
+  ]
+}

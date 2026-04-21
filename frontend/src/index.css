@@ -91,6 +91,7 @@ nav {
   background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(0, 255, 255, 0.15), transparent 400px);
   opacity: 0;
   transition: opacity 0.4s;
+  pointer-events: none; /* Critical: Allow clicks to pass through to inputs/buttons below */
 }
 
 .card-3d:hover::after {
